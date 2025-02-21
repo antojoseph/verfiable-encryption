@@ -1,111 +1,70 @@
-# RISC Zero Rust Starter Template
+# Verifiable Encryption Template Based on RISC0
 
-Welcome to the RISC Zero Rust Starter Template! This template is intended to
-give you a starting point for building a project using the RISC Zero zkVM.
-Throughout the template (including in this README), you'll find comments
-labelled `TODO` in places where you'll need to make changes. To better
-understand the concepts behind this template, check out the [zkVM
-Overview][zkvm-overview].
+Welcome to the Verifiable Encryption Template based on RISC0! This template demonstrates a complete host–guest interaction where the host generates an RSA key pair and passes the public key (encoded as a comma‑separated hexadecimal string) to the guest. The guest then decodes this key, uses it to encrypt a test message with PKCS#1 v1.5 encryption, and commits the resulting ciphertext to the journal. The host retrieves and prints this ciphertext.
+
+For an overview of the concepts behind the zkVM, see the [zkVM Overview][zkvm-overview].
 
 ## Quick Start
 
-First, make sure [rustup] is installed. The
-[`rust-toolchain.toml`][rust-toolchain] file will be used by `cargo` to
-automatically install the correct version.
+First, make sure [rustup] is installed. The [`rust-toolchain.toml`][rust-toolchain] file will automatically install the correct version.
 
-To build all methods and execute the method within the zkVM, run the following
-command:
+To build and run both the host and guest programs, simply run:
 
 ```bash
 cargo run
-```
 
-This is an empty template, and so there is no expected output (until you modify
-the code).
+What This Template Does
+	•	Host Program:
+	•	Generates a 2048‑bit RSA key pair using a secure RNG.
+	•	Extracts the public key and converts its modulus (n) and exponent (e) to hexadecimal strings.
+	•	Encodes the public key as a comma‑separated string in the format "n_hex,e_hex".
+	•	Supplies this encoded public key as input to the guest via the Executor Environment.
+	•	After execution, reads the guest’s journal, decodes the committed ciphertext (which is 256 bytes long for a 2048‑bit key), and prints it as a hex string.
+	•	Guest Program:
+	•	Reads the RSA public key string from the host.
+	•	Decodes the key by splitting the string into its hexadecimal components and converting them into BigUint values.
+	•	Constructs an RsaPublicKey and uses it to encrypt a test message (“hello world”) with PKCS#1 v1.5 encryption.
+	•	Commits the resulting ciphertext to the journal.
 
-### Executing the Project Locally in Development Mode
+Executing the Project Locally in Development Mode
 
-During development, faster iteration upon code changes can be achieved by leveraging [dev-mode], we strongly suggest activating it during your early development phase. Furthermore, you might want to get insights into the execution statistics of your project, and this can be achieved by specifying the environment variable `RUST_LOG="[executor]=info"` before running your project.
+For faster iteration during development, run your project in dev-mode (which enables debugging and faster builds) with execution statistics. For example:
 
-Put together, the command to run your project in development mode while getting execution statistics is:
-
-```bash
 RUST_LOG="[executor]=info" RISC0_DEV_MODE=1 cargo run
-```
+Running Proofs Remotely on Bonsai
 
-### Running Proofs Remotely on Bonsai
+Note: The Bonsai proving service is still in early Alpha; an API key is required for access. Click here to request access.
 
-_Note: The Bonsai proving service is still in early Alpha; an API key is
-required for access. [Click here to request access][bonsai access]._
-
-If you have access to the URL and API key to Bonsai you can run your proofs
-remotely. To prove in Bonsai mode, invoke `cargo run` with two additional
-environment variables:
-
-```bash
+If you have access to Bonsai, run your proofs remotely by providing the necessary environment variables:
 BONSAI_API_KEY="YOUR_API_KEY" BONSAI_API_URL="BONSAI_URL" cargo run
-```
+How the RSA Demo Works
+	1.	Host Side:
+	•	A new RSA key pair is generated using a secure RNG.
+	•	The public key’s modulus (n) and exponent (e) are converted to hexadecimal strings and concatenated (e.g. "n_hex,e_hex").
+	•	This encoded public key is sent as input to the guest via the Executor Environment.
+	•	After the guest finishes execution, the host decodes the guest’s journal (which contains the RSA-encrypted ciphertext) and prints the ciphertext as a hexadecimal string.
+	2.	Guest Side:
+	•	The guest reads the public key string from the host.
+	•	It parses the string by splitting it on the comma and converting each part from hexadecimal into BigUint values.
+	•	Using the reconstructed public key, it encrypts a test message (“hello world”) using PKCS#1 v1.5 padding.
+	•	Finally, it commits the ciphertext (which will be 256 bytes for a 2048‑bit RSA key) to the journal.
 
-## How to Create a Project Based on This Template
+Directory Structure
 
-Search this template for the string `TODO`, and make the necessary changes to
-implement the required feature described by the `TODO` comment. Some of these
-changes will be complex, and so we have a number of instructional resources to
-assist you in learning how to write your own code for the RISC Zero zkVM:
-
-- The [RISC Zero Developer Docs][dev-docs] is a great place to get started.
-- Example projects are available in the [examples folder][examples] of
-  [`risc0`][risc0-repo] repository.
-- Reference documentation is available at [https://docs.rs][docs.rs], including
-  [`risc0-zkvm`][risc0-zkvm], [`cargo-risczero`][cargo-risczero],
-  [`risc0-build`][risc0-build], and [others][crates].
-
-## Directory Structure
-
-It is possible to organize the files for these components in various ways.
-However, in this starter template we use a standard directory structure for zkVM
-applications, which we think is a good starting point for your applications.
-
-```text
+A common directory structure for zkVM applications is used:
 project_name
 ├── Cargo.toml
 ├── host
 │   ├── Cargo.toml
 │   └── src
-│       └── main.rs                    <-- [Host code goes here]
+│       └── main.rs       <-- [Host code: RSA key generation & guest execution]
 └── methods
     ├── Cargo.toml
     ├── build.rs
     ├── guest
     │   ├── Cargo.toml
     │   └── src
-    │       └── method_name.rs         <-- [Guest code goes here]
+    │       └── main.rs   <-- [Guest code: public key decoding & RSA encryption]
     └── src
         └── lib.rs
-```
 
-## Video Tutorial
-
-For a walk-through of how to build with this template, check out this [excerpt
-from our workshop at ZK HACK III][zkhack-iii].
-
-## Questions, Feedback, and Collaborations
-
-We'd love to hear from you on [Discord][discord] or [Twitter][twitter].
-
-[bonsai access]: https://bonsai.xyz/apply
-[cargo-risczero]: https://docs.rs/cargo-risczero
-[crates]: https://github.com/risc0/risc0/blob/main/README.md#rust-binaries
-[dev-docs]: https://dev.risczero.com
-[dev-mode]: https://dev.risczero.com/api/generating-proofs/dev-mode
-[discord]: https://discord.gg/risczero
-[docs.rs]: https://docs.rs/releases/search?query=risc0
-[examples]: https://github.com/risc0/risc0/tree/main/examples
-[risc0-build]: https://docs.rs/risc0-build
-[risc0-repo]: https://www.github.com/risc0/risc0
-[risc0-zkvm]: https://docs.rs/risc0-zkvm
-[rust-toolchain]: rust-toolchain.toml
-[rustup]: https://rustup.rs
-[twitter]: https://twitter.com/risczero
-[zkhack-iii]: https://www.youtube.com/watch?v=Yg_BGqj_6lg&list=PLcPzhUaCxlCgig7ofeARMPwQ8vbuD6hC5&index=5
-[zkvm-overview]: https://dev.risczero.com/zkvm
