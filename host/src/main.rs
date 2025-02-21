@@ -1,8 +1,9 @@
 use methods::{GUEST_CODE_ELF, GUEST_CODE_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
-use rsa::{RsaPrivateKey, RsaPublicKey}; 
+use rsa::{RsaPrivateKey, RsaPublicKey, Pkcs1v15Encrypt};
 use rsa::traits::PublicKeyParts;
 use rand::rngs::OsRng;
+use std::str;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate a new RSA key pair (2048 bits)
@@ -18,11 +19,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let e_hex = public_key.e().to_str_radix(16);
     let encoded_public_key = format!("{},{}", n_hex, e_hex);
 
-    // For debugging, print the encoded public key.
     println!("Encoded public key (to be sent to guest): {}", encoded_public_key);
 
     // Create an ExecutorEnv that supplies the encoded public key as input to the guest.
-    // Note: Since `encoded_public_key` is a String (which is Sized), we pass it directly.
     let env = ExecutorEnv::builder()
         .write(&encoded_public_key)
         .unwrap()
@@ -36,11 +35,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prove_info = prover.prove(env, GUEST_CODE_ELF).unwrap();
     let receipt = prove_info.receipt;
 
-    // Decode the journal as a Vec<u8> (this is the encrypted data).
+    // Decode the journal as a Vec<u8> (this is the RSA-encrypted ciphertext).
     let enc_data: Vec<u8> = receipt.journal.decode().unwrap();
 
-    // Print the encrypted data as a hexadecimal string.
     println!("Encrypted data (hex): {}", hex::encode(&enc_data));
+
+    // Decrypt the ciphertext using the RSA private key.
+    let dec_data = private_key.decrypt(Pkcs1v15Encrypt, &enc_data)
+        .expect("failed to decrypt");
+
+    // Convert the decrypted bytes to a UTF-8 string.
+    let plaintext = String::from_utf8(dec_data)
+        .expect("Decrypted data is not valid UTF-8");
+
+    println!("Decrypted plaintext: {}", plaintext);
 
     // Verify the receipt.
     receipt.verify(GUEST_CODE_ID).unwrap();

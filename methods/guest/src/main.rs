@@ -3,12 +3,13 @@ extern crate alloc;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::format;
 
 use risc0_zkvm::guest::env;
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, BigUint};
 use rsa::traits::PublicKeyParts;
 use num_traits::Num;
-use rand::rngs::OsRng; // Or substitute with your deterministic RNG if needed
+use rand::rngs::OsRng; // Or use a deterministic RNG if needed
 
 /// Parses an encoded RSA public key in the format "n_hex,e_hex"
 /// and returns a tuple (n, e) as BigUint values.
@@ -25,16 +26,12 @@ fn parse_public_key(encoded: &str) -> Option<(BigUint, BigUint)> {
 pub fn main() {
     // Read the encoded public key as a String from the host.
     let encoded: String = env::read();
-    
+
     // Parse the encoded public key.
     let (n, e) = parse_public_key(&encoded).expect("Failed to parse public key");
     
     // Build an RsaPublicKey using the unchecked constructor.
     let public_key = RsaPublicKey::new_unchecked(n, e);
-    
-    // For debugging: commit the key components to the journal.
-    env::commit(&public_key.n().to_bytes_be());
-    env::commit(&public_key.e().to_bytes_be());
     
     // Encrypt a test message.
     let mut rng = OsRng;
@@ -43,6 +40,6 @@ pub fn main() {
         .encrypt(&mut rng, Pkcs1v15Encrypt, data)
         .expect("failed to encrypt");
     
-    // Commit the encrypted data as the guest's output.
+    // Commit ONLY the encrypted data to the journal.
     env::commit(&enc_data);
 }
