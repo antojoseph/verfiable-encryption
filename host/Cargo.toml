@@ -12,3 +12,7 @@ pem = "1.0.0"
 rsa = "0.9.6"
 rand = "0.8"
 hex = "0.4"
+risc0-ethereum-contracts = { workspace = true }
+borsh = "0.10"
+anyhow = "1.0"
+bincode = "1.3"
