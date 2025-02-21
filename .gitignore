@@ -1,0 +1,21 @@
+# Ignore Rust compiled binaries and artifacts
+/target/
+/debug/
+/release/
+
+# Cargo package manager files
+**/Cargo.lock
+**/target/
+
+# Rust language server files
+.rustc_info.json
+.rustup/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
